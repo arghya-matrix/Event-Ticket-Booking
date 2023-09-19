@@ -19,6 +19,15 @@ async function addUser({ Name, user_name, email_address, password }) {
     return userData;
 }
 
+async function getAllUser(){
+    const user = await db.User.findAndCountAll({
+        where : {
+            user_type: "User"
+        }
+    })
+    return user;
+}
+
 async function getUser({ user_name }) {
     const user = await db.User.findAll({
         where: {
@@ -110,4 +119,5 @@ module.exports = {
     signIn,
     logOut,
     blockedToken,
+    getAllUser
 }

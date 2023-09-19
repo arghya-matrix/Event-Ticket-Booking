@@ -36,7 +36,6 @@ const User = sequelize.define(
             allowNull: false
         }
     },{
-        timestamps: false,
         id: false
     }
 )
