@@ -2,14 +2,15 @@ const { DataTypes, Sequelize } = require("sequelize");
 const sequelize = require("../db/database");
 const moment = require("moment");
 
+
 const event = sequelize.define(
   "Event",
   {
     event_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      autoIncrement : true,
-      unique : true,
+      autoIncrement: true,
+      unique: true,
       primaryKey: true,
     },
     event_name: {

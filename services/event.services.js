@@ -15,6 +15,16 @@ async function getPublicEvent({ pageSize, index, orderOptions }) {
 
 async function getPrivateEvent({ pageSize, index, orderOptions }) {
   const event = await db.Event.findAndCountAll({
+    include:[{
+      model : db.Vip,
+      attributes : ['user_id'],
+      include : [
+        {
+          model: db.User,
+          attributes : ['Name', 'user_name']
+        }
+      ]
+    }] ,
     where: {
       type: "private",
     },
@@ -22,13 +32,15 @@ async function getPrivateEvent({ pageSize, index, orderOptions }) {
     limit: pageSize,
     offset: index,
   });
+
+  // console.log(vipUsers, "<<-----Vip Users for the event");
   return event;
 }
 
-async function getOneEvent({ event_id }) {
+async function getOneEvent({ event_name }) {
   const event = await db.Event.findOne({
     where: {
-      event_id: event_id
+      event_name: event_name
     }
   })
   return event;
@@ -94,7 +106,7 @@ async function seatBooking({ event_name, seat, user_id }) {
   } else {
     const sum = await db.Log.sum('booked_seat');
     const eventData = "Max People reached";
-    return ({sum, eventData});
+    return ({ sum, eventData });
   }
 }
 
@@ -115,6 +127,39 @@ async function sumOfSeats() {
   return sum;
 }
 
+async function addVipUser({ user_id, event_name }) {
+  const event = await db.Event.findOne({
+    where: {
+      event_name: event_name
+    }
+  });
+  const event_id = event.event_id
+  user_id.map(async (id) => {
+
+    await db.Vip.bulkCreate([{
+      user_id: id,
+      event_id: event_id
+    }])
+  });
+
+  const vip_user = await db.Vip.findAll({
+    include: [{
+      model: db.Event,
+      attributes: ['event_name', 'event_date', 'max_people', 'type']
+    }, {
+      model: db.User,
+      attributes: ['Name', 'user_name'],
+      where: {
+        user_id: user_id
+      }
+    }],
+    where: {
+      event_id: event_id
+    }
+  })
+  return vip_user;
+}
+
 module.exports = {
   getPublicEvent,
   updateEvent,
@@ -124,5 +169,6 @@ module.exports = {
   seatBooking,
   getEventForUser,
   getOneEvent,
-  sumOfSeats
+  sumOfSeats,
+  addVipUser
 };

@@ -19,9 +19,9 @@ async function addUser({ Name, user_name, email_address, password }) {
     return userData;
 }
 
-async function getAllUser(){
+async function getAllUser() {
     const user = await db.User.findAndCountAll({
-        where : {
+        where: {
             user_type: "User"
         }
     })
@@ -88,27 +88,29 @@ async function logOut({
     return blockedToken;
 }
 
-// async function userProfile({user_id}){
-//     const userData = await db.User.findAll({
-//         attributes : ['user_name'],
-//         include:[
-//             {
-//                 model: db.Todo,
-//                 attributes: ['title','todo_type','todo_status','todo_date'],
-//                 include: [
-//                     {
-//                         model: db.Log,
-//                         attributes: ['log_details', 'createdAt']
-//                     }
-//                 ]
-//             },
-//         ],
-//         where:{
-//             user_id: user_id
-//         }
-//     })
-//     return userData;
-// }
+async function userProfile({ user_id }) {
+    const bookedSeat = await db.Log.sum('booked_seat')
+    const userData = await db.User.findAll({
+        attributes: ['uuid', 'Name', 'user_name', 'email_address'],
+        include: [
+            {
+                model: db.Log,
+                attributes: ['booked_seat', 'createdAt'],
+                include: [
+                    {
+                        model: db.Event,
+                        attributes: ['event_name', 'event_date', 'last_date', 'max_people',
+                            'max_booking_per_user', 'createdAt']
+                    }
+                ]
+            },
+        ],
+        where: {
+            user_id: user_id
+        }
+    })
+    return ({ userData, bookedSeat });
+}
 
 module.exports = {
     addUser,
@@ -119,5 +121,6 @@ module.exports = {
     signIn,
     logOut,
     blockedToken,
-    getAllUser
+    getAllUser,
+    userProfile
 }

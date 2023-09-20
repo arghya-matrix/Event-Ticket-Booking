@@ -347,6 +347,52 @@ async function deleteEvent(req, res) {
   }
 }
 
+async function addVipUser(req,res){
+  try {
+
+    if (req.userdata.type == "Admin") {
+      const idArray = req.body.user_id;
+      const vipUser = await eventServices.addVipUser({
+        event_name : req.body.event_name,
+        user_id : idArray
+      })
+      res.json({
+        message : `Vip User Added`,
+        data : vipUser
+      })
+    } else {
+      res.status(403).json({
+        message: `Permission denied. You must be an admin to add a VIP user.`
+      });
+    }
+  } catch (error) {
+    console.log(error,"<----Error occured");
+    res.status(500).json({
+      message: `Server error`
+    })
+  }
+  
+}
+
+async function getOneEvent(req,res){
+  try {
+    const event = await eventServices.getOneEvent({
+      event_id : req.query.event
+    })
+    if(event == null || event == undefined){
+      res.status(404).json({
+        message : `No data found`
+      })
+    } 
+  } catch (error) {
+    console.log(error,"<<-- Error occured");
+    res.status(500).json({
+      message : `An internal error occured`,
+      error: error
+    })
+  }
+}
+
 module.exports = {
   getPublicEvent,
   createEvent,
@@ -355,4 +401,6 @@ module.exports = {
   getPrivateEvent,
   seatBooking,
   getEventForUser,
+  addVipUser,
+  getOneEvent
 };

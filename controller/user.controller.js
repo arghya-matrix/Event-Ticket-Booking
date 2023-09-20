@@ -186,16 +186,17 @@ async function logOut(req, res) {
  }
 }
 
-// async function userProfile(req,res){
-//     const data = req.userdata;
-//     // console.log(data);
-//     const userData = await userServices.userProfile({
-//         user_id : data.user_id
-//     })
-//     res.json({
-//         data: userData
-//     })
-// }
+async function userProfile(req,res){
+    const data = req.userdata;
+    // console.log(data);
+    const userData = await userServices.userProfile({
+        user_id : data.user_id
+    })
+    res.json({
+      "Seat already booked": userData.bookedSeat,
+        data: userData.userData
+    })
+}
 
 module.exports = {
   updateUser,
@@ -205,5 +206,5 @@ module.exports = {
   signIn,
   logOut,
   getAllUser,
-  // userProfile
+  userProfile
 };

@@ -15,6 +15,6 @@ router.get("/getuser",verifyToken.userProfile,userController.getUser);
 router.post("/bookseat",verifyToken.userProfile, eventController.seatBooking);
 router.get("/getevents",eventController.getEventForUser);
 
-// router.get("/profile",userMiddleware.userProfile,userController.userProfile);
+router.get("/profile",verifyToken.userProfile,userController.userProfile);
 
 module.exports = router
