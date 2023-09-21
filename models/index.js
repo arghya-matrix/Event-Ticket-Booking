@@ -3,6 +3,7 @@ const User = require("./user");
 const Event = require("./event");
 const Log = require("./event_booking_log");
 const Vip = require('./vip_users');
+const Sessions = require('./sessions');
 
 User.hasMany(Log, {
   foreignKey: "user_id",
@@ -49,5 +50,6 @@ module.exports = {
   User,
   Event,
   Log,
-  Vip
+  Vip,
+  Sessions
 };

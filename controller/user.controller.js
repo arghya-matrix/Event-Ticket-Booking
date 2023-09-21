@@ -1,23 +1,37 @@
 const userServices = require("../services/user.services");
 const generateNumber = require("../services/generatenumber");
 const jwtServices = require("../services/jwt.services");
+const sessionServices = require('../services/sessions.services');
 
 async function getAllUser(req, res) {
   try {
     if (req.userdata.type == "Admin") {
-        const user = await userServices.getAllUser();
-        res.json({
-          message: `${user.count} users found`,
-          data: user.rows,
-        });
+      const whereOptions = {};
+
+      if (req.query.Name) {
+        whereOptions.Name = req.query, Name
+      }
+      if (req.query.user_name) {
+        whereOptions.user_name
+      }
+
+      whereOptions.user_type = "User"
+
+      const user = await userServices.getAllUser({
+        whereOptions: whereOptions
+      });
+      res.json({
+        message: `${user.count} users found`,
+        data: user.rows,
+      });
     }
-    else{
-        res.status(401).json({
-            message: `You are not an Admin`
-        })
+    else {
+      res.status(401).json({
+        message: `You are not an Admin`
+      })
     }
   } catch (error) {
-    console.log(error,"<---Error");
+    console.log(error, "<---Error");
     res.status(500).json({
       message: `Server Error`,
       err: error,
@@ -132,16 +146,34 @@ async function signIn(req, res) {
       res.json({
         message: `!!!!You are not Signed Up!!!!`,
       });
-    } else if (
-      data.email_address == dbUser.email_address &&
-      data.password == dbUser.password
-    ) {
+    } else if ( data.email_address == dbUser.email_address && data.password == dbUser.password ) {
+      
+      const sessions = await sessionServices.createSession({
+        user_id: dbUser.user_id
+      })
+
       const jwt = jwtServices.createToken({
+        sessions_id: sessions.id,
         user_id: dbUser.user_id,
         email_address: dbUser.email_address,
         user_name: dbUser.user_name,
         type: dbUser.user_type,
       });
+
+      // console.log(jwt, "<---- Created jwt token");
+
+      const authData = jwtServices.verifyToken(jwt);
+
+      // console.log(authData, "<---- Auth data");
+      const expDate = new Date(authData.exp * 1000);
+      const iatDate = new Date(authData.iat * 1000);
+
+      const sessionUpdate = await sessionServices.updateSession({
+        expiry_date: expDate,
+        login_date: iatDate,
+        sessions_id: authData.sessions_id
+      })
+
       const userdata = user.rows[0];
       delete userdata.password;
       delete userdata.user_id;
@@ -156,7 +188,9 @@ async function signIn(req, res) {
       });
     }
   } catch (error) {
+    console.log(error, "<-----Error???>>>>>");
     res.status(500).json({
+
       message: `Server Error`,
       err: error,
     });
@@ -164,38 +198,43 @@ async function signIn(req, res) {
 }
 
 async function logOut(req, res) {
- try {
-     const data = req.headers["authorization"];
-     if (data) {
-       const user = await userServices.logOut({
-         jwt: data,
-       });
-       res.json({
-         message: `User logged out.`,
-       });
-     } else {
-       res.json({
-         message: `To LogOut, LogIn fitst. `,
-       });
-     }
- } catch (error) {
+  try {
+    const jwt = req.headers["authorization"]
+    const authData = jwtServices.verifyToken(jwt)
+    const sessions_id = authData.sessions_id;
+    const date = new Date();
+    const logOut = await sessionServices.logoutSession({
+      date : date,
+      sessions_id : sessions_id
+    })
+    if(logOut.numUpdatedRows>0){
+      res.json({
+        message : `${authData.user_name} Logged out`
+      })
+    }
+    else{
+      res.json({
+        message: `Log in to log out`
+      })
+    }
+  } catch (error) {
     res.status(500).json({
-        message: `Server Error`,
-        err: error,
-      });
- }
+      message: `Kuch toh gadbad haiiiii !!!!!`,
+      err: error,
+    });
+  }
 }
 
-async function userProfile(req,res){
-    const data = req.userdata;
-    // console.log(data);
-    const userData = await userServices.userProfile({
-        user_id : data.user_id
-    })
-    res.json({
-      "Seat already booked": userData.bookedSeat,
-        data: userData.userData
-    })
+async function userProfile(req, res) {
+  const data = req.userdata;
+  // console.log(data);
+  const userData = await userServices.userProfile({
+    user_id: data.user_id
+  })
+  res.json({
+    "Seat already booked": userData.bookedSeat,
+    data: userData.userData
+  })
 }
 
 module.exports = {

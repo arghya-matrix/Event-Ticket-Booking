@@ -19,11 +19,9 @@ async function addUser({ Name, user_name, email_address, password }) {
     return userData;
 }
 
-async function getAllUser() {
+async function getAllUser({whereOptions}) {
     const user = await db.User.findAndCountAll({
-        where: {
-            user_type: "User"
-        }
+        where: whereOptions
     })
     return user;
 }
@@ -85,7 +83,6 @@ async function logOut({
     jwt
 }) {
     blockedToken.push(jwt);
-    return blockedToken;
 }
 
 async function userProfile({ user_id }) {

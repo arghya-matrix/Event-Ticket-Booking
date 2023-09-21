@@ -18,22 +18,40 @@ async function getPublicEvent(req, res) {
     } else {
       orderOptions.push(["event_date", "ASC"]);
     }
+    const whereOptions = {};
+
+    if (req.query.event_name) {
+      whereOptions.event_name = req.query.event_name
+    }
+
+    if (req.query.event_date) {
+      whereOptions.event_date = req.query.event_date
+    }
+    whereOptions.type = "public";
+
     const event = await eventServices.getPublicEvent({
       index: index,
       orderOptions: orderOptions,
       pageSize: size,
+      whereOptions: whereOptions
     });
 
     const currentPage = page ? +page : 1;
     const totalPages = Math.ceil(event.count / size);
 
-    res.json({
-      "Total Pages": totalPages,
-      "Total Items": event.count,
-      "Current Page": currentPage,
-      message: `${event.count} Events Found`,
-      data: event.rows,
-    });
+    if (event.count > 0) {
+      res.json({
+        "Total Pages": totalPages,
+        "Total Items": event.count,
+        "Current Page": currentPage,
+        message: `${event.count} Events Found`,
+        data: event.rows,
+      });
+    } else {
+      res.status(404).json({
+        message: `no data found`
+      })
+    }
   } catch (error) {
     res.status(500).json({
       message: `Server Error`,
@@ -58,14 +76,34 @@ async function getEventForUser(req, res) {
       orderOptions.push(["event_date", "ASC"]);
     }
 
+    const whereOptions = {};
+
+    if (req.query.event_name) {
+      whereOptions.event_name = req.query.event_name
+    }
+
+    if (req.query.event_date) {
+      whereOptions.event_date = req.query.event_date
+    }
+
     const currentDate = moment().format("YYYY-MM-DD");
+    whereOptions.type = "public";
+    whereOptions.event_date = { [Op.gte]: currentDate };
+
+
     const event = await eventServices.getEventForUser({
-      currentDate: currentDate,
       index: index,
       pageSize: size,
       orderOptions: orderOptions,
+      whereOptions: whereOptions
     });
+    const currentPage = page ? +page : 1;
+    const totalPages = Math.ceil(event.count / size);
+
     res.json({
+      "Total Pages": totalPages,
+      "Total Items": event.count,
+      "Current Page": currentPage,
       message: `${event.count} latest events found`,
       events: event.rows,
     });
@@ -100,11 +138,11 @@ async function seatBooking(req, res) {
         seat: req.body.no_of_seat,
         user_id: req.userdata.user_id,
       });
-     
+
       res.json({
-        "Total Seat Booked" : event.sum,
+        "Total Seat Booked": event.sum,
         data: event.eventData,
-        message : event
+        message: event
       });
     }
   } catch (error) {
@@ -150,7 +188,7 @@ async function getPrivateEvent(req, res) {
       });
     } else {
       res.status(403).json({
-        message: `Event can be created by Admin only`,
+        message: `Event can be seen by Admin only`,
       });
     }
   } catch (error) {
@@ -248,18 +286,12 @@ async function updateEvent(req, res) {
       const updateOptions = {};
       const whereOptions = {};
       ///////////////Update Type//////////////////////////
-      if (req.query.type && req.query.event_id) {
-        if (req.query.type == "public") {
-          const event = await eventServices.getOneEvent({
-            event_id: req.query.event_id,
-          });
-          updateOptions.seat_left = event.max_people;
-          updateOptions.type = req.query.type;
-        } else {
-          updateOptions.type = req.query.type;
-        }
+
+      if (req.query.type) {
+        updateOptions.type = req.query.type;
       }
       /////////////////////////////Update Date//////////////////////////////////////
+
       if (req.query.event_date) {
         const date = moment(req.query.event_date).format("YYYY-MM-DD");
         const currentDate = moment().format("YYYY-MM-DD");
@@ -286,8 +318,6 @@ async function updateEvent(req, res) {
 
       if (req.query.max_people) {
         updateOptions.max_people = req.query.max_people;
-        updateOptions.seat_left = db.sequelize.literal(`seat_left + (${req.query.max_people} - max_people)`)
-        console.log(updateOptions.seat_left,"<-----Seat left");
       }
 
       if (req.query.max_booking) {
@@ -347,18 +377,18 @@ async function deleteEvent(req, res) {
   }
 }
 
-async function addVipUser(req,res){
+async function addVipUser(req, res) {
   try {
 
     if (req.userdata.type == "Admin") {
       const idArray = req.body.user_id;
       const vipUser = await eventServices.addVipUser({
-        event_name : req.body.event_name,
-        user_id : idArray
+        event_name: req.body.event_name,
+        user_id: idArray
       })
       res.json({
-        message : `Vip User Added`,
-        data : vipUser
+        message: `Vip User Added`,
+        data: vipUser
       })
     } else {
       res.status(403).json({
@@ -366,28 +396,28 @@ async function addVipUser(req,res){
       });
     }
   } catch (error) {
-    console.log(error,"<----Error occured");
+    console.log(error, "<----Error occured");
     res.status(500).json({
       message: `Server error`
     })
   }
-  
+
 }
 
-async function getOneEvent(req,res){
+async function getOneEvent(req, res) {
   try {
     const event = await eventServices.getOneEvent({
-      event_id : req.query.event
+      event_id: req.query.event
     })
-    if(event == null || event == undefined){
+    if (event == null || event == undefined) {
       res.status(404).json({
-        message : `No data found`
+        message: `No data found`
       })
-    } 
+    }
   } catch (error) {
-    console.log(error,"<<-- Error occured");
+    console.log(error, "<<-- Error occured");
     res.status(500).json({
-      message : `An internal error occured`,
+      message: `An internal error occured`,
       error: error
     })
   }

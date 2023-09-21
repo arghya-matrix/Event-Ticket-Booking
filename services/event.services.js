@@ -1,11 +1,9 @@
 const { Op } = require("sequelize");
 const db = require("../models/index");
 
-async function getPublicEvent({ pageSize, index, orderOptions }) {
+async function getPublicEvent({ pageSize, index, orderOptions , whereOptions }) {
   const event = await db.Event.findAndCountAll({
-    where: {
-      type: "public",
-    },
+    where: whereOptions,
     order: orderOptions,
     limit: pageSize,
     offset: index,
@@ -110,11 +108,9 @@ async function seatBooking({ event_name, seat, user_id }) {
   }
 }
 
-async function getEventForUser({ currentDate, pageSize, index, orderOptions }) {
+async function getEventForUser({ whereOptions, pageSize, index, orderOptions }) {
   const event = await db.Event.findAndCountAll({
-    where: {
-      event_date: { [Op.gte]: currentDate },
-    },
+    where: whereOptions,
     order: orderOptions,
     limit: pageSize,
     offset: index,
