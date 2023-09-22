@@ -14,7 +14,7 @@ router.post("/logout",verifyToken.userProfile,userController.logOut);
 router.delete("/delete",verifyToken.userProfile,userController.deleteUser);
 router.get("/getuser",verifyToken.userProfile,userController.getUser);
 router.post("/bookseat",verifyToken.userProfile, eventController.seatBooking);
-router.get("/getevents",eventController.getEventForUser);
+// router.get("/getevents",eventController.getEventForUser);
 router.get("/profile",verifyToken.userProfile,userController.userProfile);
 
 module.exports = router

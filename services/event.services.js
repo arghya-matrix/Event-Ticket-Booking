@@ -1,7 +1,7 @@
 const { Op } = require("sequelize");
 const db = require("../models/index");
 
-async function getPublicEvent({ pageSize, index, orderOptions , whereOptions }) {
+async function getPublicEvent({ pageSize, index, orderOptions, whereOptions }) {
   const event = await db.Event.findAndCountAll({
     where: whereOptions,
     order: orderOptions,
@@ -11,21 +11,26 @@ async function getPublicEvent({ pageSize, index, orderOptions , whereOptions }) 
   return event;
 }
 
-async function getPrivateEvent({ pageSize, index, orderOptions }) {
+async function getPrivateEvent({
+  pageSize,
+  index,
+  orderOptions,
+  whereOptions,
+}) {
   const event = await db.Event.findAndCountAll({
-    include:[{
-      model : db.Vip,
-      attributes : ['user_id'],
-      include : [
-        {
-          model: db.User,
-          attributes : ['Name', 'user_name']
-        }
-      ]
-    }] ,
-    where: {
-      type: "private",
-    },
+    include: [
+      {
+        model: db.Vip,
+        attributes: ["user_id"],
+        include: [
+          {
+            model: db.User,
+            attributes: ["Name", "user_name"],
+          },
+        ],
+      },
+    ],
+    where: whereOptions,
     order: orderOptions,
     limit: pageSize,
     offset: index,
@@ -35,14 +40,12 @@ async function getPrivateEvent({ pageSize, index, orderOptions }) {
   return event;
 }
 
-async function getOneEvent({ event_name }) {
-  const event = await db.Event.findOne({
-    where: {
-      event_name: event_name
-    }
-  })
-  return event;
-}
+// async function getOneEvent({ whereOptions }) {
+//   const event = await db.Event.findAndCountAll({
+//     where: whereOptions
+//   })
+//   return event;
+// }
 
 async function updateEvent({ updateOptions, whereOptions }) {
   await db.Event.update(updateOptions, {
@@ -72,12 +75,11 @@ async function deleteEvent({ event_name }) {
 async function seatBooking({ event_name, seat, user_id }) {
   const data = await db.Event.findOne({
     where: {
-      event_name: event_name
-    }
+      event_name: event_name,
+    },
   });
-  const sum = await db.Log.sum('booked_seat');
+  const sum = await db.Log.sum("booked_seat");
   const event_id = data.event_id;
-
 
   if (sum <= data.max_people) {
     await db.Log.create({
@@ -102,58 +104,97 @@ async function seatBooking({ event_name, seat, user_id }) {
       },
     });
   } else {
-    const sum = await db.Log.sum('booked_seat');
+    const sum = await db.Log.sum("booked_seat");
     const eventData = "Max People reached";
-    return ({ sum, eventData });
+    return { sum, eventData };
   }
 }
 
-async function getEventForUser({ whereOptions, pageSize, index, orderOptions }) {
-  const event = await db.Event.findAndCountAll({
-    where: whereOptions,
-    order: orderOptions,
-    limit: pageSize,
-    offset: index,
-  });
-  return event;
-}
+// async function getEventForUser({ whereOptions, pageSize, index, orderOptions }) {
+//   const event = await db.Event.findAndCountAll({
+//     where: whereOptions,
+//     order: orderOptions,
+//     limit: pageSize,
+//     offset: index,
+//   });
+//   return event;
+// }
 
 async function sumOfSeats() {
-  const sum = await db.Log.sum('booked_seat');
+  const sum = await db.Log.sum("booked_seat");
   return sum;
 }
 
 async function addVipUser({ user_id, event_name }) {
   const event = await db.Event.findOne({
     where: {
-      event_name: event_name
-    }
+      event_name: event_name,
+    },
   });
-  const event_id = event.event_id
+  const event_id = event.event_id;
   user_id.map(async (id) => {
-
-    await db.Vip.bulkCreate([{
-      user_id: id,
-      event_id: event_id
-    }])
+    await db.Vip.bulkCreate([
+      {
+        user_id: id,
+        event_id: event_id,
+      },
+    ]);
   });
 
   const vip_user = await db.Vip.findAll({
-    include: [{
-      model: db.Event,
-      attributes: ['event_name', 'event_date', 'max_people', 'type']
-    }, {
-      model: db.User,
-      attributes: ['Name', 'user_name'],
-      where: {
-        user_id: user_id
-      }
-    }],
+    include: [
+      {
+        model: db.Event,
+        attributes: ["event_name", "event_date", "max_people", "type"],
+      },
+      {
+        model: db.User,
+        attributes: ["Name", "user_name"],
+        where: {
+          user_id: user_id,
+        },
+      },
+    ],
     where: {
-      event_id: event_id
-    }
-  })
+      event_id: event_id,
+    },
+  });
   return vip_user;
+}
+
+async function getEventForUser({ whereOptions, user_id }) {
+  try {
+    const vipEvent = await db.Vip.findAndCountAll({
+      include: [
+        {
+          model: db.Event,
+          attributes: [
+            "event_name",
+            "event_date",
+            "createdAt",
+            "last_date",
+            "max_people",
+          ],
+          where: whereOptions,
+        },
+      ],
+      where: {
+        user_id: user_id,
+      },
+    });
+    return {
+      error: false,
+      statuscode: 200,
+      message: vipEvent,
+    };
+  } catch (error) {
+    console.log(error, "<<Kuch toh gadbad hai>>");
+    return {
+      error: true,
+      statuscode: 403,
+      message: "<<Ye Devaaa!!! ye gadbad hai re bawa>>",
+    };
+  }
 }
 
 module.exports = {
@@ -164,7 +205,7 @@ module.exports = {
   getPrivateEvent,
   seatBooking,
   getEventForUser,
-  getOneEvent,
+  // getOneEvent,
   sumOfSeats,
-  addVipUser
+  addVipUser,
 };

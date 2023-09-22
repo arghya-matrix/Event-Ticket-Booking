@@ -12,7 +12,7 @@ async function getAllUser(req, res) {
         whereOptions.Name = req.query, Name
       }
       if (req.query.user_name) {
-        whereOptions.user_name
+        whereOptions.user_name = req.query.user_name
       }
 
       whereOptions.user_type = "User"

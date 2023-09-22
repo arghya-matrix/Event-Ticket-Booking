@@ -2,13 +2,73 @@ const eventServices = require("../services/event.services");
 const moment = require("moment");
 const logServices = require("../services/log.services");
 const db = require("../models/index");
+const { Op } = require("sequelize");
 
-async function getPublicEvent(req, res) {
+// async function getEvent(req, res) {
+//   try {
+//     const page = req.query.page ? req.query.page : 1;
+//     const itemsInPage = req.query.size;
+
+//     const orderOptions = [];
+
+//     const size = itemsInPage ? +itemsInPage : 3;
+//     const index = page ? (page - 1) * size : 0;
+
+//     if (req.query.colName && req.query.orderName) {
+//       orderOptions.push([req.query.colName, req.query.orderName]);
+//     } else {
+//       orderOptions.push(["event_date", "ASC"]);
+//     }
+//     const whereOptions = {};
+
+//
+
+//     if (req.query.event_date) {
+//       whereOptions.event_date = moment(req.query.event_date).format("YYYY-MM-DD");
+//     }
+//     whereOptions.type = "public";
+//     const currentDate = moment().format("YYYY-MM-DD");
+//     whereOptions.event_date = { [Op.gte]: currentDate };
+
+//     const event = await eventServices.getPublicEvent({
+//       index: index,
+//       orderOptions: orderOptions,
+//       pageSize: size,
+//       whereOptions: whereOptions
+//     });
+//     // console.log(event,'Event data');
+//     const currentPage = page ? +page : 1;
+//     const totalPages = Math.ceil(event.count / size);
+
+//     if (event.count > 0) {
+//       res.json({
+//         "Total Pages": totalPages,
+//         "Total Items": event.count,
+//         "Current Page": currentPage,
+//         message: `${event.count} Events Found`,
+//         data: event.rows,
+//       });
+//     } else {
+//       res.status(404).json({
+//         message: `no data found`
+//       })
+//     }
+//   } catch (error) {
+//     res.status(500).json({
+//       message: `Server Error`,
+//       err: error,
+//     });
+//   }
+// }
+
+async function getPublicEventForUser(req, res) {
   try {
     const page = req.query.page ? req.query.page : 1;
     const itemsInPage = req.query.size;
 
     const orderOptions = [];
+    const whereOptions = {};
+    const currentDate = moment().format("YYYY-MM-DD");
 
     const size = itemsInPage ? +itemsInPage : 3;
     const index = page ? (page - 1) * size : 0;
@@ -18,95 +78,42 @@ async function getPublicEvent(req, res) {
     } else {
       orderOptions.push(["event_date", "ASC"]);
     }
-    const whereOptions = {};
 
     if (req.query.event_name) {
-      whereOptions.event_name = req.query.event_name
+      whereOptions.event_name = {
+        [Op.substring]: req.query.event_name,
+      };
     }
 
-    if (req.query.event_date) {
-      whereOptions.event_date = req.query.event_date
+    if (req.query.type) {
+      whereOptions.type = req.query.type;
     }
-    whereOptions.type = "public";
 
-    const event = await eventServices.getPublicEvent({
+    whereOptions.event_date = { [Op.gte]: currentDate };
+
+    const value = await eventServices.getEventForUser({
       index: index,
-      orderOptions: orderOptions,
       pageSize: size,
-      whereOptions: whereOptions
+      orderOptions: orderOptions,
+      whereOptions: whereOptions,
+      user_id: req.userdata.user_id,
     });
-
+    const event = value.message;
     const currentPage = page ? +page : 1;
     const totalPages = Math.ceil(event.count / size);
-
-    if (event.count > 0) {
+    if (value.statuscode == 200) {
       res.json({
         "Total Pages": totalPages,
         "Total Items": event.count,
         "Current Page": currentPage,
-        message: `${event.count} Events Found`,
-        data: event.rows,
+        message: `${event.count} latest events found`,
+        events: event.rows,
       });
     } else {
-      res.status(404).json({
-        message: `no data found`
-      })
+      res.status(value.statuscode).json({
+        message: value.message,
+      });
     }
-  } catch (error) {
-    res.status(500).json({
-      message: `Server Error`,
-      err: error,
-    });
-  }
-}
-
-async function getEventForUser(req, res) {
-  try {
-    const page = req.query.page ? req.query.page : 1;
-    const itemsInPage = req.query.size;
-
-    const orderOptions = [];
-
-    const size = itemsInPage ? +itemsInPage : 3;
-    const index = page ? (page - 1) * size : 0;
-
-    if (req.query.colName && req.query.orderName) {
-      orderOptions.push([req.query.colName, req.query.orderName]);
-    } else {
-      orderOptions.push(["event_date", "ASC"]);
-    }
-
-    const whereOptions = {};
-
-    if (req.query.event_name) {
-      whereOptions.event_name = req.query.event_name
-    }
-
-    if (req.query.event_date) {
-      whereOptions.event_date = req.query.event_date
-    }
-
-    const currentDate = moment().format("YYYY-MM-DD");
-    whereOptions.type = "public";
-    whereOptions.event_date = { [Op.gte]: currentDate };
-
-
-    const event = await eventServices.getEventForUser({
-      index: index,
-      pageSize: size,
-      orderOptions: orderOptions,
-      whereOptions: whereOptions
-    });
-    const currentPage = page ? +page : 1;
-    const totalPages = Math.ceil(event.count / size);
-
-    res.json({
-      "Total Pages": totalPages,
-      "Total Items": event.count,
-      "Current Page": currentPage,
-      message: `${event.count} latest events found`,
-      events: event.rows,
-    });
   } catch (error) {
     console.log(error, "<-----An error occured");
     res.status(500).json({
@@ -142,7 +149,7 @@ async function seatBooking(req, res) {
       res.json({
         "Total Seat Booked": event.sum,
         data: event.eventData,
-        message: event
+        message: event,
       });
     }
   } catch (error) {
@@ -154,11 +161,11 @@ async function seatBooking(req, res) {
   }
 }
 
-async function getPrivateEvent(req, res) {
+async function getEventForAdmin(req, res) {
   try {
     const page = req.query.page ? req.query.page : 1;
     const itemsInPage = req.query.size;
-
+    const whereOptions = {};
     const orderOptions = [];
 
     const size = itemsInPage ? +itemsInPage : 3;
@@ -170,11 +177,26 @@ async function getPrivateEvent(req, res) {
       orderOptions.push(["event_name", "ASC"]);
     }
 
+    if (req.query.event_name) {
+      whereOptions.event_name = {
+        [Op.like]: `%${req.query.event_name}`,
+      };
+    }
+
+    if (req.query.event_date) {
+      whereOptions.event_date = req.query.event_date;
+    }
+
+    if (req.query.type) {
+      whereOptions.type = req.query.type;
+    }
+
     if (req.userdata.type == "Admin") {
       const event = await eventServices.getPrivateEvent({
         index: index,
         pageSize: size,
         orderOptions: orderOptions,
+        whereOptions: whereOptions,
       });
       const currentPage = page ? +page : 1;
       const totalPages = Math.round(event.count / size);
@@ -379,58 +401,36 @@ async function deleteEvent(req, res) {
 
 async function addVipUser(req, res) {
   try {
-
     if (req.userdata.type == "Admin") {
       const idArray = req.body.user_id;
       const vipUser = await eventServices.addVipUser({
         event_name: req.body.event_name,
-        user_id: idArray
-      })
+        user_id: idArray,
+      });
       res.json({
         message: `Vip User Added`,
-        data: vipUser
-      })
+        data: vipUser,
+      });
     } else {
       res.status(403).json({
-        message: `Permission denied. You must be an admin to add a VIP user.`
+        message: `Permission denied. You must be an admin to add a VIP user.`,
       });
     }
   } catch (error) {
     console.log(error, "<----Error occured");
     res.status(500).json({
-      message: `Server error`
-    })
-  }
-
-}
-
-async function getOneEvent(req, res) {
-  try {
-    const event = await eventServices.getOneEvent({
-      event_id: req.query.event
-    })
-    if (event == null || event == undefined) {
-      res.status(404).json({
-        message: `No data found`
-      })
-    }
-  } catch (error) {
-    console.log(error, "<<-- Error occured");
-    res.status(500).json({
-      message: `An internal error occured`,
-      error: error
-    })
+      message: `Server error`,
+    });
   }
 }
 
 module.exports = {
-  getPublicEvent,
+  // getEvent,
   createEvent,
   updateEvent,
   deleteEvent,
-  getPrivateEvent,
+  getEventForAdmin,
   seatBooking,
-  getEventForUser,
+  getPublicEventForUser,
   addVipUser,
-  getOneEvent
 };

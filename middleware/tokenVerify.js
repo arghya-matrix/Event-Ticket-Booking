@@ -11,7 +11,7 @@ async function userProfile(req, res, next) {
       verify(data, "createJwtToken", async (err, authData) => {
         if (err) {
           res.status(401).json({
-            message: "Unauthorized",
+            message: "Unauthorized",    
           });
           return;
         } else {
@@ -20,7 +20,7 @@ async function userProfile(req, res, next) {
           })
           if (session.logout_date == null) {
             req.userdata = authData;
-            console.log(req.userdata);
+            // console.log(req.userdata);
             next();
           } else {
             return res.status(403).json({
