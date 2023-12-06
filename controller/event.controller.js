@@ -90,6 +90,7 @@ async function getPublicEventForUser(req, res) {
     }
 
     whereOptions.event_date = { [Op.gte]: currentDate };
+    console.log(whereOptions, "Where Options");
 
     const value = await eventServices.getEventForUser({
       index: index,

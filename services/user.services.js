@@ -2,12 +2,13 @@ const db = require('../models/index');
 const blockedToken = [];
 
 
-async function addUser({ Name, user_name, email_address, password }) {
+async function addUser({ Name, user_name, email_address, password, user_type="User" }) {
     const user = await db.User.create({
         Name: Name,
         user_name: user_name,
         password: password,
-        email_address: email_address
+        email_address: email_address,
+        user_type: user_type
     },
         // {
         //     returning: true,

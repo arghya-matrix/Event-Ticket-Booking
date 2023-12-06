@@ -51,6 +51,7 @@ async function signUp(req, res) {
       Name: data.Name,
       password: data.password,
       user_name: userName.concat(number),
+      user_type: data.user_type || null
     });
     // console.log(user);
     res.json({
